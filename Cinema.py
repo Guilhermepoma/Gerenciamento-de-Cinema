@@ -325,7 +325,7 @@ def abrir_compra_produtos(parent_window):
         produto_sel = tabela.item(item)["values"]
         id_produto = produto_sel[0]
         nome_produto = produto_sel[1]
-        preco_unitario = produto_sel[3]
+        preco_unitario = float(produto_sel[3])
         estoque_atual = produto_sel[4]
 
         if quantidade > estoque_atual:
@@ -460,6 +460,9 @@ def abrir_historico_compras(parent_window):
 
 # =================== RELATÓRIOS DE VENDAS =================== #
 def abrir_relatorios_vendas():
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
     relatorios = ctk.CTkToplevel()
     relatorios.geometry("600x500")
     relatorios.title("Relatórios de Vendas")
@@ -469,7 +472,8 @@ def abrir_relatorios_vendas():
                  font=ctk.CTkFont(size=22, weight="bold")).pack(pady=20)
 
     conexao = conectar()
-    if not conexao: return
+    if not conexao:
+        return
     cursor = conexao.cursor()
 
     # 1. Cálculo do Faturamento Total de Ingressos
@@ -515,7 +519,7 @@ def abrir_relatorios_vendas():
     ctk.CTkLabel(relatorios, text=f"TOTAL GERAL: R$ {faturamento_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
                  font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
 
-    # Frame para Produtos Mais Vendidos (será preenchido na próxima fase)
+    # Frame para Produtos Mais Vendidos
     frame_produtos_vendidos = ctk.CTkFrame(relatorios)
     frame_produtos_vendidos.pack(pady=20, padx=20, fill="both", expand=True)
     
@@ -523,6 +527,7 @@ def abrir_relatorios_vendas():
                  font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
 
     # 3. Produtos Mais Vendidos
+    mais_vendidos = []
     conexao = conectar()
     if conexao:
         cursor = conexao.cursor()
@@ -551,8 +556,32 @@ def abrir_relatorios_vendas():
             cursor.close()
             conexao.close()
 
-    relatorios.mainloop()
+    # 4. Gráfico dos Produtos Mais Vendidos (tema escuro)
+    if mais_vendidos:
+        nomes = [item[0] for item in mais_vendidos]
+        quantidades = [item[1] for item in mais_vendidos]
 
+        fig, ax = plt.subplots(figsize=(5, 3))
+        ax.bar(nomes, quantidades, color='#1f77b4')
+
+        # Estilo escuro
+        ax.set_facecolor('#2b2b2b')
+        fig.patch.set_facecolor('#2b2b2b')
+        ax.tick_params(colors='white')
+        ax.title.set_color('white')
+        ax.xaxis.label.set_color('white')
+        ax.yaxis.label.set_color('white')
+
+        ax.set_title("Top 5 Produtos Mais Vendidos")
+        ax.set_xlabel("Produto")
+        ax.set_ylabel("Quantidade Vendida")
+        plt.xticks(rotation=30, ha='right')
+
+        canvas = FigureCanvasTkAgg(fig, master=frame_produtos_vendidos)
+        canvas.draw()
+        canvas.get_tk_widget().pack(pady=10)
+
+    relatorios.mainloop()
 
 # =================== PAINEL DO ADMIN =================== #
 def abrir_admin():
